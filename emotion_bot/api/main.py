@@ -1,5 +1,6 @@
 import logging
 from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi.middleware.cors import CORSMiddleware  # Добавляем CORS
 from pydantic import BaseModel
 from transformers import pipeline
 import os
@@ -23,6 +24,15 @@ logger = logging.getLogger(__name__)
 # Создаём FastAPI приложение
 app = FastAPI(title="Sentiment & Emotion Analysis API")
 
+# Настройка CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Разрешить фронтенд
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # API ключ из .env
 API_KEY = os.getenv("API_KEY", "default_key")
 
@@ -43,12 +53,10 @@ emotion_classifier = pipeline(
 
 print("✅ Модели загружены!")
 
-
 # Модель запроса
 class AnalysisRequest(BaseModel):
     text: str
     mode: str  # "sentiment" или "emotion"
-
 
 # Модель ответа
 class AnalysisResponse(BaseModel):
@@ -56,14 +64,12 @@ class AnalysisResponse(BaseModel):
     result: str
     score: float
 
-
 # Проверка API ключа
 def verify_api_key(x_api_key: str = Header(...)):
     if x_api_key != API_KEY:
         logger.warning(f"Попытка доступа с неверным API ключом: {x_api_key}")
         raise HTTPException(status_code=403, detail="Invalid API Key")
     return x_api_key
-
 
 # Главный эндпоинт
 @app.post("/analyze", response_model=AnalysisResponse)
@@ -91,10 +97,10 @@ async def analyze_text(
             
             # Маппинг меток
             label_map = {
-    "neutral": "нейтрально",
-    "positive": "позитив",
-    "negative": "негатив"
-}
+                "neutral": "нейтрально",
+                "positive": "позитив",
+                "negative": "негатив"
+            }
             
             response = AnalysisResponse(
                 mode="sentiment",
@@ -136,13 +142,11 @@ async def analyze_text(
         logger.error(f"Ошибка при обработке запроса: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-
 # Healthcheck эндпоинт
 @app.get("/health")
 async def health_check():
     """Проверка работоспособности API"""
     return {"status": "ok", "models": ["sentiment", "emotion"]}
-
 
 # Информация об API
 @app.get("/")
