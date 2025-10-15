@@ -9,7 +9,7 @@ API_PORT=8000
 Для начала в одном терминале запусткаем сервер
 ```bash
 cd emotion_bot
-
+pip install -r requirements.txt
 python run_api.py
 ```
 Далее во втором терминале запускаем frontend часть
